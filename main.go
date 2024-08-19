@@ -7,6 +7,8 @@ import (
 	"sort"
 )
 
+const BILLION = 15000 //1000000000
+
 func main() {
 	DoIt("input.txt")
 }
@@ -16,14 +18,14 @@ func DoIt(fileName string) {
 
 	file, _ := os.Open(fileName)
 	src := bufio.NewScanner(file)
-	src.Buffer(make([]byte, 15), 105)
-	src.Split(bufio.ScanLines) // other option: 2 scanners, one scans for ; and \n and the split function takes the advance # and the second scanner then scans that many more and it processes it there
-	// could also do split by rune and just advance and skip newline checking...
+	//src.Buffer(make([]byte, 15), 105)
+	src.Buffer(make([]byte, 8192), 16384)
+	src.Split(bufio.ScanLines)
 
-	var means = make(map[[100]byte]float32)
+	var means = make(map[[100]byte]float32, BILLION)
 	var nums = make(map[[100]byte]float32)
-	var minimums = make(map[[100]byte]float32)
-	var maximums = make(map[[100]byte]float32)
+	var minimums = make(map[[100]byte]float32, BILLION)
+	var maximums = make(map[[100]byte]float32, BILLION)
 
 	for {
 		notEOF := src.Scan()
