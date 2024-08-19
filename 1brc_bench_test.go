@@ -7,5 +7,7 @@ func Benchmark1BRC(b *testing.B) {
 }
 
 func Benchmark1BRCmini(b *testing.B) {
-	DoIt("data.txt")
+	for i := 0; i < b.N; i++ {
+		DoIt("data.txt")
+	}
 }
