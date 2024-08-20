@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math/rand"
 	"strconv"
 	"testing"
 )
@@ -118,5 +119,30 @@ func FloatConvGo(binary [5]byte) float32 {
 func BenchmarkParse_FloatConvGo(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		FloatConvGo([5]byte{0x2D, 0x39, 0x39, 0x2E, 0x39})
+	}
+}
+
+func BenchmarkParse_AllocArray(b *testing.B) {
+	arrKeys := make([]int, b.N)
+	arrValues := make([]int, b.N)
+	for i := 0; i < b.N; i++ {
+		arrKeys[i] = i
+		arrValues[i] = rand.Int()
+	}
+}
+func BenchmarkParse_ArrayAppend(b *testing.B) {
+	var arrKeys []int
+	var arrValues []int
+	for i := 0; i < b.N; i++ {
+		arrKeys = append(arrKeys, i)
+		arrValues = append(arrValues, rand.Int())
+	}
+}
+func BenchmarkParse_Map(b *testing.B) {
+	arrKeys := make(map[int]int, b.N)
+	arrValues := make(map[int]int, b.N)
+	for i := 0; i < b.N; i++ {
+		arrKeys[i] = i
+		arrValues[i] = rand.Int()
 	}
 }

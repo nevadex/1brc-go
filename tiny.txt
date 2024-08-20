@@ -1,0 +1,32 @@
+Manila;30.0
+Honolulu;14.4
+Amsterdam;-1.7
+Mek'ele;27.4
+Xi'an;12.3
+Tabora;28.9
+Algiers;38.7
+Erzurum;10.6
+Launceston;11.2
+Tbilisi;22.2
+Marrakesh;12.8
+George Town;19.9
+Yangon;24.3
+Tamale;52.7
+Honolulu;47.5
+Ngaoundéré;19.9
+Kuala Lumpur;27.4
+Douala;23.2
+Hiroshima;13.8
+Whitehorse;10.5
+Berlin;10.7
+Tunis;6.8
+Vienna;10.4
+Miami;21.8
+Dodoma;18.1
+Skopje;7.4
+Lake Tekapo;6.3
+Anchorage;-9.6
+Brussels;7.5
+Gaborone;14.5
+Riyadh;7.7
+Hanga Roa;12.9
