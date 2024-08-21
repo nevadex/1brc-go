@@ -128,6 +128,8 @@ func BenchmarkParse_AllocArray(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		arrKeys[i] = i
 		arrValues[i] = rand.Int()
+		_ = arrKeys[i]
+		_ = arrValues[i]
 	}
 }
 func BenchmarkParse_ArrayAppend(b *testing.B) {
@@ -136,13 +138,14 @@ func BenchmarkParse_ArrayAppend(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		arrKeys = append(arrKeys, i)
 		arrValues = append(arrValues, rand.Int())
+		_ = arrKeys[i]
+		_ = arrValues[i]
 	}
 }
 func BenchmarkParse_Map(b *testing.B) {
 	arrKeys := make(map[int]int, b.N)
-	arrValues := make(map[int]int, b.N)
 	for i := 0; i < b.N; i++ {
-		arrKeys[i] = i
-		arrValues[i] = rand.Int()
+		arrKeys[i] = rand.Int()
+		_ = arrKeys[i]
 	}
 }
