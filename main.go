@@ -26,7 +26,7 @@ var (
 	//rangeLock           = sync.RWMutex{}
 	stations             []map[[100]byte]int64
 	means                [][]float32
-	nums                 [][]float32 // change to int and include float conversion when doing avg calc
+	nums                 [][]float32
 	minimums             [][]float32
 	maximums             [][]float32
 	XcurrentStationIndex = int64(0)
@@ -67,6 +67,7 @@ func DoIt(fn string) {
 			_, _ = file.ReadAt(b, offset+perGRlimit+adj)
 			adj++
 			if b[0] == 0x0A || b[0] == 0x00 {
+				go Process(i, offset, perGRlimit+adj)
 				break
 			}
 		}
@@ -74,7 +75,6 @@ func DoIt(fn string) {
 
 		//fmt.Println("THREAD", i, offset, perGRlimit+adj)
 		wg.Add(1)
-		go Process(i, offset, perGRlimit+adj)
 	}
 
 	_ = file.Close()
