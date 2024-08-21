@@ -13,9 +13,15 @@ func Benchmark1BRC(b *testing.B) {
 	}
 }
 
-func Benchmark1BRCmini(b *testing.B) {
+func Benchmark1BRC_15K(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		DoIt("data.txt")
+	}
+}
+
+func Benchmark1BRC_1M(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		DoIt("million.txt")
 	}
 }
 

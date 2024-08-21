@@ -2,7 +2,7 @@
   <configuration default="false" name="Benchmark1BRC in 1brc-go" type="GoTestRunConfiguration" factoryName="Go Test">
     <module name="1brc-go" />
     <working_directory value="$PROJECT_DIR$" />
-    <parameters value="-test.benchmem -test.benchtime=1x" />
+    <parameters value="-test.benchtime=1x" />
     <kind value="PACKAGE" />
     <package value="1brc-go" />
     <directory value="$PROJECT_DIR$" />

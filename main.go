@@ -12,18 +12,30 @@ import (
 const BILLION = 15000 //1000000000
 
 var (
-	means    = make(map[[100]byte]float32, BILLION)
-	nums     = make(map[[100]byte]float32)
-	minimums = make(map[[100]byte]float32, BILLION)
-	maximums = make(map[[100]byte]float32, BILLION)
-	lock     = sync.RWMutex{}
-	wg       = sync.WaitGroup{}
+	//means    = make(map[[100]byte]float32, BILLION)
+	//nums     = make(map[[100]byte]float32)
+	//minimums = make(map[[100]byte]float32, BILLION)
+	//maximums = make(map[[100]byte]float32, BILLION)
+
+	currentStationIndex = int64(0)
+	stations            = make(map[[100]byte]int64, 10000)
+	stationLock         = sync.RWMutex{}
+	means               = make([]float32, 10000)
+	meanLock            = sync.RWMutex{}
+	nums                = make([]float32, 10000)
+	minimums            = make([]float32, 10000)
+	maximums            = make([]float32, 10000)
+	rangeLock           = sync.RWMutex{}
+
+	lock = sync.RWMutex{}
+	wg   = sync.WaitGroup{}
 )
 
 var FILENAME string
 
 func main() {
-	DoIt("input.txt")
+	//DoIt("input.txt")
+	DoIt("javashit\\measurements.txt")
 }
 
 // DoIt
@@ -58,10 +70,10 @@ func DoIt(fn string) {
 	_ = file.Close()
 	wg.Wait()
 
-	var keys = make([]string, len(means))
-	var keyByteStringMap = make(map[string][100]byte, len(means))
+	var keys = make([]string, len(stations))
+	var keyByteStringMap = make(map[string]int64, len(stations))
 	keyIndex := 0
-	for k := range means {
+	for k, v := range stations {
 		firstIndexWithZero := 0
 		for i := range k {
 			if k[i] == 0 {
@@ -73,7 +85,7 @@ func DoIt(fn string) {
 
 		keys[keyIndex] = str
 		keyIndex++
-		keyByteStringMap[str] = k
+		keyByteStringMap[str] = v
 	}
 	sort.Strings(keys)
 
@@ -92,7 +104,7 @@ func Process(offset int64, limit int64) {
 	//src.Buffer(make([]byte, 15), 105)
 	//src.Buffer(make([]byte, 8192), 16384)
 	src.Buffer(make([]byte, 2097152), 4194304)
-	src.Split(bufio.ScanLines)
+	//src.Split(bufio.ScanLines)
 	var currentPos int64 = 0 // EOF must have CRLF, change to -2 if the generated data does not add CRLF at the end
 
 	for {
@@ -131,7 +143,7 @@ func Process(offset int64, limit int64) {
 		pv := float32(0.1)
 		for i := 4; i >= 0; i-- {
 			if temperatureBytes[i] != 0x00 && temperatureBytes[i] != 0x2D && temperatureBytes[i] != 0x2E {
-				temperatureFloat += pv * DigitConv(temperatureBytes[i])
+				temperatureFloat += pv * float32(temperatureBytes[i]+(^byte(48)+1))
 				pv *= 10
 			}
 		}
@@ -141,54 +153,100 @@ func Process(offset int64, limit int64) {
 
 		//fmt.Println(offset, string(station[:]), string(temperatureBytes[:]), temperatureFloat)
 
-		lock.RLock()
-		prevNum := nums[station]
-		prevAvg := means[station]
-		prevMax, okMax := maximums[station]
-		prevMin, okMin := minimums[station]
-		lock.RUnlock()
+		stationLock.RLock()
+		stationIndex, stationExists := stations[station]
+		stationLock.RUnlock()
 
-		lock.Lock()
-		means[station] = ((prevAvg * prevNum) + temperatureFloat) / (prevNum + 1)
-		nums[station] = prevNum + 1
-		lock.Unlock()
+		if !stationExists {
+			stationLock.Lock()
+			currentStationIndex++
+			stations[station] = currentStationIndex
+			stationIndex = currentStationIndex
+			stationLock.Unlock()
 
-		if (okMax && prevMax < temperatureFloat) || !okMax {
-			lock.Lock()
-			maximums[station] = temperatureFloat
-			lock.Unlock()
+			meanLock.Lock()
+			means[stationIndex] = temperatureFloat
+			nums[stationIndex] = 1
+			meanLock.Unlock()
+
+			//minLock.Lock()
+			//minimums[stationIndex] = temperatureFloat
+			//minLock.Unlock()
+			//
+			//maxLock.Lock()
+			//maximums[stationIndex] = temperatureFloat
+			//maxLock.Unlock()
+			rangeLock.Lock()
+			minimums[stationIndex] = temperatureFloat
+			maximums[stationIndex] = temperatureFloat
+			rangeLock.Unlock()
+		} else {
+			meanLock.RLock()
+			prevAvg := means[stationIndex]
+			prevNum := nums[stationIndex]
+			meanLock.RUnlock()
+			meanLock.Lock()
+			means[stationIndex] = ((prevAvg * prevNum) + temperatureFloat) / (prevNum + 1)
+			nums[stationIndex] = prevNum + 1
+			meanLock.Unlock()
+
+			//minLock.RLock()
+			//prevMin := minimums[stationIndex]
+			//minLock.RUnlock()
+			//if prevMin > temperatureFloat {
+			//	minLock.Lock()
+			//	minimums[stationIndex] = temperatureFloat
+			//	minLock.Unlock()
+			//}
+			//
+			//maxLock.RLock()
+			//prevMax := maximums[stationIndex]
+			//maxLock.RUnlock()
+			//if prevMax < temperatureFloat {
+			//	maxLock.Lock()
+			//	maximums[stationIndex] = temperatureFloat
+			//	maxLock.Unlock()
+			//}
+			rangeLock.RLock()
+			prevMin := minimums[stationIndex]
+			prevMax := maximums[stationIndex]
+			rangeLock.RUnlock()
+			if prevMin > temperatureFloat {
+				rangeLock.Lock()
+				minimums[stationIndex] = temperatureFloat
+				rangeLock.Unlock()
+			}
+			if prevMax < temperatureFloat {
+				rangeLock.Lock()
+				maximums[stationIndex] = temperatureFloat
+				rangeLock.Unlock()
+			}
 		}
-		if (okMin && prevMin > temperatureFloat) || !okMin {
-			lock.Lock()
-			minimums[station] = temperatureFloat
-			lock.Unlock()
-		}
+
+		//lock.RLock()
+		//prevNum := nums[station]
+		//prevAvg := means[station]
+		//prevMax, okMax := maximums[station]
+		//prevMin, okMin := minimums[station]
+		//lock.RUnlock()
+		//
+		//lock.Lock()
+		//means[station] = ((prevAvg * prevNum) + temperatureFloat) / (prevNum + 1)
+		//nums[station] = prevNum + 1
+		//lock.Unlock()
+		//
+		//if (okMax && prevMax < temperatureFloat) || !okMax {
+		//	lock.Lock()
+		//	maximums[station] = temperatureFloat
+		//	lock.Unlock()
+		//}
+		//if (okMin && prevMin > temperatureFloat) || !okMin {
+		//	lock.Lock()
+		//	minimums[station] = temperatureFloat
+		//	lock.Unlock()
+		//}
 	}
 
 	wg.Done()
 	_ = file.Close()
-}
-
-func DigitConv(b byte) float32 {
-	if b == 0x31 {
-		return 1
-	} else if b == 0x32 {
-		return 2
-	} else if b == 0x33 {
-		return 3
-	} else if b == 0x34 {
-		return 4
-	} else if b == 0x35 {
-		return 5
-	} else if b == 0x36 {
-		return 6
-	} else if b == 0x37 {
-		return 7
-	} else if b == 0x38 {
-		return 8
-	} else if b == 0x39 {
-		return 9
-	} else {
-		return 0
-	}
 }

@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="1brc-go TIMED" type="ShConfigurationType">
-    <option name="SCRIPT_TEXT" value="Measure-Command {start-process %APPDATA%\..\Local\JetBrains\GoLand2024.2\tmp\GoLand\___go_build_1brc_go.exe -Wait}" />
+    <option name="SCRIPT_TEXT" value="Measure-Command {start-process &quot;$env:APPDATA\..\Local\JetBrains\GoLand2024.2\tmp\GoLand\___go_build_1brc_go.exe&quot; -Wait}" />
     <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
     <option name="SCRIPT_PATH" value="" />
     <option name="SCRIPT_OPTIONS" value="" />
@@ -13,7 +13,7 @@
     <option name="EXECUTE_SCRIPT_FILE" value="false" />
     <envs />
     <method v="2">
-      <option name="RunConfigurationTask" enabled="true" run_configuration_name="go build 1brc-go" run_configuration_type="GoApplicationRunConfiguration" />
+      <option name="RunConfigurationTask" enabled="true" run_configuration_name="go build 1brc-go run NO RUN" run_configuration_type="GoApplicationRunConfiguration" />
     </method>
   </configuration>
 </component>
