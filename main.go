@@ -28,7 +28,7 @@ var (
 	//maximums            = make([]float32, 10000)
 	//rangeLock           = sync.RWMutex{}
 	stations             []map[[100]byte]int64
-	means                [][]float32
+	sums                 [][]float32
 	nums                 [][]float32
 	minimums             [][]float32
 	maximums             [][]float32
@@ -52,7 +52,7 @@ func DoIt(fn string) {
 	numThreads := int64(runtime.NumCPU())
 
 	stations = make([]map[[100]byte]int64, numThreads)
-	means = make([][]float32, numThreads)
+	sums = make([][]float32, numThreads)
 	nums = make([][]float32, numThreads)
 	minimums = make([][]float32, numThreads)
 	maximums = make([][]float32, numThreads)
@@ -91,19 +91,14 @@ func DoIt(fn string) {
 				stations[0][Ystation] = XcurrentStationIndex
 				XstationIndex = XcurrentStationIndex
 
-				means[0][XstationIndex] = means[Y][YstationIndex]
+				sums[0][XstationIndex] = sums[Y][YstationIndex]
 				nums[0][XstationIndex] = nums[Y][YstationIndex]
 
 				minimums[0][XstationIndex] = maximums[Y][YstationIndex]
 				maximums[0][XstationIndex] = minimums[Y][YstationIndex]
 			} else {
-				XAvg := means[0][XstationIndex]
-				XNum := nums[0][XstationIndex]
-				YAvg := means[Y][YstationIndex]
-				YNum := nums[Y][YstationIndex]
-
-				means[0][XstationIndex] = ((XAvg * XNum) + (YAvg * YNum)) / (XNum + YNum)
-				nums[0][XstationIndex] = XNum + YNum
+				sums[0][XstationIndex] += sums[Y][YstationIndex]
+				nums[0][XstationIndex] += nums[Y][YstationIndex]
 
 				Xmin := minimums[0][XstationIndex]
 				Xmax := maximums[0][XstationIndex]
@@ -142,7 +137,7 @@ func DoIt(fn string) {
 
 	for i := range sortedStationNames {
 		bKey := nameIndexMap[sortedStationNames[i]]
-		fmt.Printf("%v;%.1f;%.1f;%.1f\n", sortedStationNames[i], minimums[0][bKey], means[0][bKey], maximums[0][bKey])
+		fmt.Printf("%v;%.1f;%.1f;%.1f\n", sortedStationNames[i], minimums[0][bKey], sums[0][bKey]/nums[0][bKey], maximums[0][bKey])
 	}
 
 	//fmt.Println(len(sortedStationNames))
@@ -164,7 +159,7 @@ func ScanLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
 func Process(arrIndex int64, offset int64, limit int64) {
 	currentStationIndex := int64(0)
 	stations[arrIndex] = make(map[[100]byte]int64, 10000)
-	means[arrIndex] = make([]float32, 10000)
+	sums[arrIndex] = make([]float32, 10000)
 	nums[arrIndex] = make([]float32, 10000)
 	minimums[arrIndex] = make([]float32, 10000)
 	maximums[arrIndex] = make([]float32, 10000)
@@ -180,8 +175,6 @@ func Process(arrIndex int64, offset int64, limit int64) {
 
 	var stationIndex int64
 	var stationExists bool
-	var prevAvg float32
-	var prevNum float32
 	var prevMin float32
 	var prevMax float32
 
@@ -241,16 +234,14 @@ func Process(arrIndex int64, offset int64, limit int64) {
 			stations[arrIndex][station] = currentStationIndex
 			stationIndex = currentStationIndex
 
-			means[arrIndex][stationIndex] = temperatureFloat
+			sums[arrIndex][stationIndex] = temperatureFloat
 			nums[arrIndex][stationIndex] = 1
 
 			minimums[arrIndex][stationIndex] = temperatureFloat
 			maximums[arrIndex][stationIndex] = temperatureFloat
 		} else {
-			prevAvg = means[arrIndex][stationIndex]
-			prevNum = nums[arrIndex][stationIndex]
-			means[arrIndex][stationIndex] = ((prevAvg * prevNum) + temperatureFloat) / (prevNum + 1)
-			nums[arrIndex][stationIndex] = prevNum + 1
+			sums[arrIndex][stationIndex] += temperatureFloat
+			nums[arrIndex][stationIndex] += 1
 
 			prevMin = minimums[arrIndex][stationIndex]
 			prevMax = maximums[arrIndex][stationIndex]
