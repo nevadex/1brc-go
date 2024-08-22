@@ -2,11 +2,14 @@ package main
 
 import (
 	"bufio"
+	bytespkg "bytes"
 	"fmt"
 	"os"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
+	"unsafe"
 )
 
 var (
@@ -128,7 +131,8 @@ func DoIt(fn string) {
 				break
 			}
 		}
-		str := string(k[:firstIndexWithZero])
+		//str := string(k[:firstIndexWithZero])
+		str := strings.Clone(unsafe.String(unsafe.SliceData(k[:firstIndexWithZero]), firstIndexWithZero))
 
 		sortedStationNames[keyIndex] = str
 		keyIndex++
@@ -142,6 +146,19 @@ func DoIt(fn string) {
 	}
 
 	//fmt.Println(len(sortedStationNames))
+}
+
+func ScanLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if i := bytespkg.IndexByte(data, 0x0A); i >= 0 {
+		// We have a full newline-terminated line.
+		return i + 1, data[0 : i-1], nil
+	}
+	// If we're at EOF, we have a final, non-terminated line. Return it.
+	if atEOF && len(data) > 0 {
+		return len(data), data[:len(data)-1], nil
+	}
+	// Request more data.
+	return 0, nil, nil
 }
 
 func Process(arrIndex int64, offset int64, limit int64) {
@@ -158,8 +175,15 @@ func Process(arrIndex int64, offset int64, limit int64) {
 	//src.Buffer(make([]byte, 15), 105)
 	//src.Buffer(make([]byte, 8192), 16384)
 	src.Buffer(make([]byte, 2097152), 4194304)
-	//src.Split(bufio.ScanLines)
+	src.Split(ScanLines)
 	var currentPos int64 = 0 // EOF must have CRLF, change to -2 if the generated data does not add CRLF at the end
+
+	var stationIndex int64
+	var stationExists bool
+	var prevAvg float32
+	var prevNum float32
+	var prevMin float32
+	var prevMax float32
 
 	for {
 		notEOF := src.Scan()
@@ -174,28 +198,32 @@ func Process(arrIndex int64, offset int64, limit int64) {
 			break
 		}
 
+		//var temperatureBytes [5]byte
+		//iOffset := 0
+		//readingStation := true
+		//for i := range bytes {
+		//	b := bytes[i]
+		//	if b == 0x3b {
+		//		readingStation = false
+		//		iOffset = i + 1
+		//		continue
+		//	}
+		//
+		//	if readingStation {
+		//		station[i] = b
+		//	} else {
+		//		temperatureBytes[i-iOffset] = b
+		//	}
+		//}
+		semicolonIndex := bytespkg.IndexByte(bytes, 0x3b)
+		//station := bytes[:semicolonIndex]
 		var station [100]byte
-		var temperatureBytes [5]byte
-		iOffset := 0
-		readingStation := true
-		for i := range bytes {
-			b := bytes[i]
-			if b == 0x3b {
-				readingStation = false
-				iOffset = i + 1
-				continue
-			}
+		copy(station[0:], bytes[:semicolonIndex])
+		temperatureBytes := bytes[semicolonIndex+1:]
 
-			if readingStation {
-				station[i] = b
-			} else {
-				temperatureBytes[i-iOffset] = b
-			}
-		}
 		var temperatureFloat float32
-
 		pv := float32(0.1)
-		for i := 4; i >= 0; i-- {
+		for i := len(temperatureBytes) - 1; i >= 0; i-- {
 			if temperatureBytes[i] != 0x00 && temperatureBytes[i] != 0x2D && temperatureBytes[i] != 0x2E {
 				temperatureFloat += pv * float32(temperatureBytes[i]+(^byte(48)+1))
 				pv *= 10
@@ -207,7 +235,7 @@ func Process(arrIndex int64, offset int64, limit int64) {
 
 		//fmt.Println(offset, string(station[:]), string(temperatureBytes[:]), temperatureFloat)
 
-		stationIndex, stationExists := stations[arrIndex][station]
+		stationIndex, stationExists = stations[arrIndex][station]
 		if !stationExists {
 			currentStationIndex++
 			stations[arrIndex][station] = currentStationIndex
@@ -219,13 +247,13 @@ func Process(arrIndex int64, offset int64, limit int64) {
 			minimums[arrIndex][stationIndex] = temperatureFloat
 			maximums[arrIndex][stationIndex] = temperatureFloat
 		} else {
-			prevAvg := means[arrIndex][stationIndex]
-			prevNum := nums[arrIndex][stationIndex]
+			prevAvg = means[arrIndex][stationIndex]
+			prevNum = nums[arrIndex][stationIndex]
 			means[arrIndex][stationIndex] = ((prevAvg * prevNum) + temperatureFloat) / (prevNum + 1)
 			nums[arrIndex][stationIndex] = prevNum + 1
 
-			prevMin := minimums[arrIndex][stationIndex]
-			prevMax := maximums[arrIndex][stationIndex]
+			prevMin = minimums[arrIndex][stationIndex]
+			prevMax = maximums[arrIndex][stationIndex]
 			if prevMin > temperatureFloat {
 				minimums[arrIndex][stationIndex] = temperatureFloat
 			}
